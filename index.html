@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VocabPop 單字學習平台 - L3</title>
+  
+  <!-- 載入 Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- 載入 React, ReactDOM 與 Babel (讓瀏覽器能直接編譯 JSX) -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    /* 確保字體好看 */
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+  </style>
+</head>
+<body>
+  <!-- React 應用程式掛載點 -->
+  <div id="root"></div>
+
+  <!-- 應用程式邏輯 -->
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    // --- 完整單字庫資料 (L3 Prometheus: The Champion of Humankind：Words for Production + Idioms and Phrases) ---
+    const vocabularyBank = [
+      { word: "humankind", kk: "/ˈhjumənˌkaɪnd/", syllables: ["hu", "man", "kind"], stressIndex: 0, pos: "n.", meaning: "The human race; all people as a whole.", chinese: "人類", wordFamily: "-", matchPairs: [{ en: "for the good of humankind", zh: "為了人類的福祉" }, { en: "the history of humankind", zh: "人類的歷史" }, { en: "threaten humankind", zh: "威脅人類" }], example: "Some scientists believe that artificial intelligence could either benefit or threaten humankind in the future.", exampleChinese: "有些科學家認為，人工智慧未來可能造福人類，也可能威脅人類。", targetInExample: "humankind" },
+      { word: "universe", kk: "/ˈjunəˌvɝs/", syllables: ["u", "ni", "verse"], stressIndex: 0, pos: "n. sing.", meaning: "Stars, planets, moons, and everything else that exists in space.", chinese: "宇宙", wordFamily: "universal (adj.) 普遍的", matchPairs: [{ en: "the vastness of the universe", zh: "宇宙的浩瀚" }, { en: "explore the universe", zh: "探索宇宙" }, { en: "the origin of the universe", zh: "宇宙的起源" }], example: "Astronomers are still trying to understand how the universe began billions of years ago.", exampleChinese: "天文學家仍在試圖了解數十億年前宇宙是如何開始的。", targetInExample: "universe" },
+      { word: "universal", kk: "/ˌjunəˈvɝsl/", syllables: ["u", "ni", "ver", "sal"], stressIndex: 2, pos: "adj.", meaning: "Applying to all people or situations.", chinese: "普遍的", wordFamily: "universe (n.) 宇宙", matchPairs: [{ en: "a universal truth", zh: "普遍的真理" }, { en: "universal agreement", zh: "普遍的共識" }, { en: "nearly universal", zh: "幾乎普遍" }], example: "The desire to be loved and accepted seems to be a universal feeling among people of every culture.", exampleChinese: "渴望被愛與被接納似乎是所有文化中人們共有的普遍感受。", targetInExample: "universal" },
+      { word: "fur", kk: "/fɝ/", syllables: ["fur"], stressIndex: 0, pos: "n.", meaning: "The soft hair covering animals; also the material made from animal skin and hair.", chinese: "（動物的）毛；毛皮", wordFamily: "-", matchPairs: [{ en: "thick fur", zh: "濃密的毛" }, { en: "fur coat", zh: "毛皮大衣" }, { en: "animal fur", zh: "動物毛皮" }], example: "The rabbit's white fur made it almost invisible against the snow.", exampleChinese: "這隻兔子的白毛讓牠幾乎隱身在雪地中。", targetInExample: "fur" },
+      { word: "enable", kk: "/ɪnˈebl/", syllables: ["en", "a", "ble"], stressIndex: 1, pos: "vt.", meaning: "To make someone able to do something.", chinese: "使...能夠...", wordFamily: "-", matchPairs: [{ en: "enable sb to do sth", zh: "使某人能夠做某事" }, { en: "enable growth", zh: "促成成長" }, { en: "technology enables", zh: "科技使...得以" }], example: "This new app enables users to translate menus instantly while traveling abroad.", exampleChinese: "這款新應用程式讓使用者在國外旅行時能立即翻譯菜單。", targetInExample: "enables" },
+      { word: "upright", kk: "/ˈʌpˌraɪt/", syllables: ["up", "right"], stressIndex: 0, pos: "adv./adj.", meaning: "Standing straight; vertically; also, in a straight vertical position.", chinese: "直立地；直立的", wordFamily: "-", matchPairs: [{ en: "stand upright", zh: "直立站著" }, { en: "sit upright", zh: "坐直" }, { en: "keep the box upright", zh: "讓箱子保持直立" }], example: "The soldiers stood upright and still while the national anthem was played.", exampleChinese: "士兵們在國歌演奏時直立不動地站著。", targetInExample: "upright" },
+      { word: "generous", kk: "/ˈdʒɛnərəs/", syllables: ["gen", "er", "ous"], stressIndex: 0, pos: "adj.", meaning: "Taking pleasure in giving freely; not stingy or selfish.", chinese: "慷慨的", wordFamily: "generosity (n.) 慷慨", matchPairs: [{ en: "generous donation", zh: "慷慨的捐贈" }, { en: "extremely generous", zh: "非常慷慨" }, { en: "generous with", zh: "對...慷慨" }], example: "It was incredibly generous of the stranger to pay for our meal without expecting anything in return.", exampleChinese: "那位陌生人慷慨地為我們付了餐費，卻不求任何回報，真是太大方了。", targetInExample: "generous" },
+      { word: "generosity", kk: "/ˌdʒɛnəˈrɑsətɪ/", syllables: ["gen", "er", "os", "i", "ty"], stressIndex: 2, pos: "n.", meaning: "The quality of being generous.", chinese: "慷慨", wordFamily: "generous (adj.) 慷慨的", matchPairs: [{ en: "show generosity", zh: "展現慷慨" }, { en: "great generosity", zh: "極大的慷慨" }, { en: "out of generosity", zh: "出於慷慨" }], example: "The village showed great generosity by welcoming the flood victims into their homes.", exampleChinese: "這個村莊展現了極大的慷慨，歡迎水災受害者到他們家中避難。", targetInExample: "generosity" },
+      { word: "conflict", kk: "/ˈkɑnflɪkt/", syllables: ["con", "flict"], stressIndex: 0, pos: "n.", meaning: "A serious argument, fight, or war.", chinese: "衝突", wordFamily: "conflict (vi.) 抵觸", matchPairs: [{ en: "resolve a conflict", zh: "解決衝突" }, { en: "avoid conflict", zh: "避免衝突" }, { en: "come into conflict with", zh: "與...起衝突" }], example: "The two neighbors came into conflict over where their fence should be built.", exampleChinese: "這兩位鄰居因籬笆該建在哪裡而起了衝突。", targetInExample: "conflict" },
+      { word: "conflict", kk: "/kənˈflɪkt/", syllables: ["con", "flict"], stressIndex: 1, pos: "vi.", meaning: "To be inconsistent or in disagreement with each other.", chinese: "（兩種想法等）抵觸", wordFamily: "conflict (n.) 衝突", matchPairs: [{ en: "conflict with", zh: "與...抵觸" }, { en: "views conflict", zh: "觀點相抵觸" }, { en: "schedules conflict", zh: "行程衝突" }], example: "My work schedule conflicts with the club meeting, so I won't be able to attend this week.", exampleChinese: "我的工作行程與社團會議時間衝突，所以我這週沒辦法出席。", targetInExample: "conflicts" },
+      { word: "distribution", kk: "/ˌdɪstrəˈbjuʃən/", syllables: ["dis", "tri", "bu", "tion"], stressIndex: 2, pos: "n.", meaning: "How something is spread or shared among a group or over an area.", chinese: "分配；分布", wordFamily: "distribute (vt.) 分發", matchPairs: [{ en: "fair distribution", zh: "公平的分配" }, { en: "distribution of resources", zh: "資源的分配" }, { en: "wealth distribution", zh: "財富分配" }], example: "The charity organized a fair distribution of food and blankets among the refugees.", exampleChinese: "這個慈善機構為難民安排了食物與毛毯的公平分配。", targetInExample: "distribution" },
+      { word: "distribute", kk: "/dɪˈstrɪbjʊt/", syllables: ["dis", "trib", "ute"], stressIndex: 1, pos: "vt.", meaning: "To give out or share something among a group of people.", chinese: "分發；分配", wordFamily: "distribution (n.) 分配", matchPairs: [{ en: "distribute flyers", zh: "分發傳單" }, { en: "distribute evenly", zh: "平均分配" }, { en: "distribute prizes", zh: "發放獎品" }], example: "Volunteers distributed bottles of water to runners along the marathon route.", exampleChinese: "志工們沿著馬拉松路線向跑者發放瓶裝水。", targetInExample: "distributed" },
+      { word: "benefit", kk: "/ˈbɛnəfɪt/", syllables: ["ben", "e", "fit"], stressIndex: 0, pos: "n.", meaning: "A good, useful, or helpful effect; an advantage or gain.", chinese: "益處", wordFamily: "beneficial (adj.) 有利的", matchPairs: [{ en: "for the benefit of", zh: "為了...的利益" }, { en: "health benefits", zh: "健康益處" }, { en: "gain a benefit", zh: "獲得好處" }], example: "Regular exercise has many benefits, including better sleep and a stronger immune system.", exampleChinese: "規律運動有許多益處，包括改善睡眠和增強免疫系統。", targetInExample: "benefits" },
+      { word: "benefit", kk: "/ˈbɛnəfɪt/", syllables: ["ben", "e", "fit"], stressIndex: 0, pos: "vt./vi.", meaning: "To be helpful or useful to someone, or to gain something helpful from a situation.", chinese: "對...有益；得益於...", wordFamily: "benefit (n.) 益處", matchPairs: [{ en: "benefit from", zh: "得益於" }, { en: "greatly benefit", zh: "大大受益" }, { en: "benefit society", zh: "造福社會" }], example: "Students can greatly benefit from reading a wide variety of books outside of class.", exampleChinese: "學生可以從課外廣泛閱讀各類書籍中大大受益。", targetInExample: "benefit" },
+      { word: "beneficial", kk: "/ˌbɛnəˈfɪʃəl/", syllables: ["ben", "e", "fi", "cial"], stressIndex: 2, pos: "adj.", meaning: "Producing good or helpful results or effects.", chinese: "有利的；有幫助的", wordFamily: "benefit (n./vt./vi.) 益處", matchPairs: [{ en: "beneficial effect", zh: "有益的效果" }, { en: "mutually beneficial", zh: "互利的" }, { en: "highly beneficial", zh: "極為有益" }], example: "The new trade agreement is expected to be mutually beneficial for both countries.", exampleChinese: "這項新的貿易協定預期將對兩國都有利。", targetInExample: "beneficial" },
+      { word: "slaughter", kk: "/ˈslɔtɚ/", syllables: ["slaugh", "ter"], stressIndex: 0, pos: "vt./n.", meaning: "To kill an animal for its meat, or to kill in a cruel and violent way; the act of doing so.", chinese: "宰殺；屠殺", wordFamily: "-", matchPairs: [{ en: "slaughter cattle", zh: "宰殺牛隻" }, { en: "mass slaughter", zh: "大規模屠殺" }, { en: "lead to slaughter", zh: "導致屠殺" }], example: "The farm slaughters chickens humanely before sending the meat to local markets.", exampleChinese: "這座農場以人道的方式宰殺雞隻，然後將肉品送往當地市場。", targetInExample: "slaughters" },
+      { word: "underneath", kk: "/ˌʌndɚˈniθ/", syllables: ["un", "der", "neath"], stressIndex: 2, pos: "prep.", meaning: "Below or under something, especially a cover, mask, or lid.", chinese: "在...下", wordFamily: "-", matchPairs: [{ en: "underneath the surface", zh: "在表面之下" }, { en: "hide underneath", zh: "藏在...下面" }, { en: "underneath the bed", zh: "在床底下" }], example: "The cat likes to hide underneath the sofa whenever guests arrive.", exampleChinese: "每當有客人來訪，這隻貓都喜歡躲在沙發底下。", targetInExample: "underneath" },
+      { word: "freeze", kk: "/friz/", syllables: ["freeze"], stressIndex: 0, pos: "vi./vt.", meaning: "To suffer terrible, often deadly, cold; or to turn into ice, or make something turn into ice.", chinese: "受凍；冷凍；凍結", wordFamily: "-", matchPairs: [{ en: "freeze to death", zh: "凍死" }, { en: "freeze leftovers", zh: "冷凍剩菜" }, { en: "the lake freezes", zh: "湖水結冰" }], example: "Without proper winter gear, hikers can freeze to death in the mountains within hours.", exampleChinese: "若沒有適當的禦寒裝備，登山客在山上可能在幾小時內就被凍死。", targetInExample: "freeze" },
+      { word: "victim", kk: "/ˈvɪktɪm/", syllables: ["vic", "tim"], stressIndex: 0, pos: "n.", meaning: "A person who suffers or dies because of an accident, crime, attack, or disease.", chinese: "受害者；罹難者", wordFamily: "-", matchPairs: [{ en: "innocent victim", zh: "無辜的受害者" }, { en: "victim of a crime", zh: "犯罪的受害者" }, { en: "help the victims", zh: "幫助受害者" }], example: "The organization provides free counseling to victims of natural disasters.", exampleChinese: "這個組織為天災的受害者提供免費諮商服務。", targetInExample: "victims" },
+      { word: "miserable", kk: "/ˈmɪzərəbl/", syllables: ["mis", "er", "a", "ble"], stressIndex: 0, pos: "adj.", meaning: "Very sad or unhappy due to mental or physical suffering.", chinese: "悲慘的", wordFamily: "misery (n.) 慘況", matchPairs: [{ en: "feel miserable", zh: "感到悲慘" }, { en: "miserable weather", zh: "糟糕的天氣" }, { en: "look miserable", zh: "看起來很悲慘" }], example: "Stuck in traffic for three hours in the pouring rain made everyone in the car miserable.", exampleChinese: "在傾盆大雨中塞車三小時，讓車上每個人都感到十分痛苦。", targetInExample: "miserable" },
+      { word: "misery", kk: "/ˈmɪzərɪ/", syllables: ["mis", "er", "y"], stressIndex: 0, pos: "n.", meaning: "A state of great suffering or unhappiness.", chinese: "慘況", wordFamily: "miserable (adj.) 悲慘的", matchPairs: [{ en: "put sb out of misery", zh: "讓某人脫離苦海" }, { en: "years of misery", zh: "多年的苦難" }, { en: "endure misery", zh: "忍受苦難" }], example: "War brought years of misery to the small village near the border.", exampleChinese: "戰爭為邊境附近的這個小村莊帶來多年的苦難。", targetInExample: "misery" },
+      { word: "hollow", kk: "/ˈhɑlo/", syllables: ["hol", "low"], stressIndex: 0, pos: "adj.", meaning: "Empty on the inside; filled with air only.", chinese: "中空的", wordFamily: "-", matchPairs: [{ en: "hollow tree", zh: "中空的樹" }, { en: "hollow sound", zh: "空洞的聲音" }, { en: "completely hollow", zh: "完全中空" }], example: "The old tree trunk was completely hollow, and a family of owls had made it their home.", exampleChinese: "這棵老樹幹完全是中空的，一家貓頭鷹把它當成了家。", targetInExample: "hollow" },
+      { word: "furious", kk: "/ˈfjʊrɪəs/", syllables: ["fu", "ri", "ous"], stressIndex: 0, pos: "adj.", meaning: "Extremely angry; in a rage.", chinese: "暴怒的", wordFamily: "fury (n.) 狂怒", matchPairs: [{ en: "furious about", zh: "對...大發雷霆" }, { en: "absolutely furious", zh: "極度憤怒" }, { en: "furious customer", zh: "憤怒的顧客" }], example: "My dad was furious when he discovered someone had scratched his new car in the parking lot.", exampleChinese: "當我爸爸發現有人在停車場刮花了他的新車時，他氣炸了。", targetInExample: "furious" },
+      { word: "fury", kk: "/ˈfjʊrɪ/", syllables: ["fu", "ry"], stressIndex: 0, pos: "n.", meaning: "Extreme anger; rage.", chinese: "狂怒", wordFamily: "furious (adj.) 暴怒的", matchPairs: [{ en: "shake with fury", zh: "氣得發抖" }, { en: "burst with fury", zh: "怒不可遏" }, { en: "in a fury", zh: "勃然大怒" }], example: "She slammed the door in fury after hearing the unfair decision.", exampleChinese: "聽到這個不公平的決定後，她氣得用力甩上了門。", targetInExample: "fury" },
+      { word: "theft", kk: "/θɛft/", syllables: ["theft"], stressIndex: 0, pos: "n.", meaning: "The action of stealing something from someone.", chinese: "偷竊", wordFamily: "-", matchPairs: [{ en: "identity theft", zh: "身分盜竊" }, { en: "report a theft", zh: "報案竊案" }, { en: "commit theft", zh: "犯下竊盜" }], example: "The store installed extra cameras after several thefts were reported last month.", exampleChinese: "這家商店在上個月接獲多起竊案通報後，加裝了更多監視器。", targetInExample: "thefts" },
+      { word: "punish", kk: "/ˈpʌnɪʃ/", syllables: ["pun", "ish"], stressIndex: 0, pos: "vt.", meaning: "To force someone to suffer because he or she has done something wrong.", chinese: "懲罰", wordFamily: "punishment (n.) 懲罰", matchPairs: [{ en: "punish severely", zh: "嚴厲懲罰" }, { en: "be punished for", zh: "因...而受罰" }, { en: "punish a crime", zh: "懲處罪行" }], example: "The coach punished the whole team with extra laps because two players arrived late.", exampleChinese: "因為有兩名球員遲到，教練罰全隊多跑幾圈作為懲罰。", targetInExample: "punished" },
+      { word: "punishment", kk: "/ˈpʌnɪʃmənt/", syllables: ["pun", "ish", "ment"], stressIndex: 0, pos: "n.", meaning: "The act of punishing, or a penalty for wrongdoing.", chinese: "懲罰", wordFamily: "punish (vt.) 懲罰", matchPairs: [{ en: "harsh punishment", zh: "嚴厲的懲罰" }, { en: "as punishment for", zh: "作為...的懲罰" }, { en: "receive punishment", zh: "受到懲罰" }], example: "As punishment for skipping practice, the coach made the players run extra laps.", exampleChinese: "作為缺席訓練的懲罰，教練要求球員多跑幾圈。", targetInExample: "punishment" },
+      { word: "banish", kk: "/ˈbænɪʃ/", syllables: ["ban", "ish"], stressIndex: 0, pos: "vt.", meaning: "To force someone to leave a place or country and never come back.", chinese: "放逐", wordFamily: "banishment (n.) 放逐", matchPairs: [{ en: "banish from", zh: "從...放逐" }, { en: "banish forever", zh: "永遠放逐" }, { en: "banished to", zh: "被放逐到" }], example: "In the old tale, the dishonest minister was banished from the kingdom forever.", exampleChinese: "在這個古老的故事中，那位不誠實的大臣被永遠逐出了王國。", targetInExample: "banished" },
+      { word: "banishment", kk: "/ˈbænɪʃmənt/", syllables: ["ban", "ish", "ment"], stressIndex: 0, pos: "n.", meaning: "The act of forcing someone to leave and never return.", chinese: "放逐", wordFamily: "banish (vt.) 放逐", matchPairs: [{ en: "sentence sb to banishment", zh: "判某人放逐" }, { en: "permanent banishment", zh: "永久放逐" }, { en: "face banishment", zh: "面臨放逐" }], example: "In ancient times, banishment was often considered a punishment worse than death.", exampleChinese: "在古代，放逐常被視為比死刑更嚴重的懲罰。", targetInExample: "banishment" },
+      { word: "torture", kk: "/ˈtɔrtʃɚ/", syllables: ["tor", "ture"], stressIndex: 0, pos: "vt./n.", meaning: "To force someone to suffer a lot of pain, often on purpose; also, such suffering itself.", chinese: "折磨", wordFamily: "-", matchPairs: [{ en: "torture sb", zh: "折磨某人" }, { en: "sheer torture", zh: "純粹的折磨" }, { en: "mental torture", zh: "精神折磨" }], example: "Waiting for the exam results felt like torture for the anxious students.", exampleChinese: "等待考試結果對焦慮的學生來說簡直是一種折磨。", targetInExample: "torture" },
+      { word: "civilization", kk: "/ˌsɪvləˈzeʃən/", syllables: ["civ", "i", "li", "za", "tion"], stressIndex: 3, pos: "n.", meaning: "Advanced, well-developed, and well-organized human society, especially one that values culture and education.", chinese: "文明", wordFamily: "-", matchPairs: [{ en: "ancient civilization", zh: "古文明" }, { en: "modern civilization", zh: "現代文明" }, { en: "the rise of civilization", zh: "文明的興起" }], example: "Archaeologists discovered ruins that may belong to a civilization more than 5,000 years old.", exampleChinese: "考古學家發現了可能屬於五千多年前某個文明的遺跡。", targetInExample: "civilization" },
+
+      // --- Idioms and Phrases ---
+      { word: "run out (of...)", kk: "/rʌn aʊt ʌv/", syllables: ["run", "out", "of"], stressIndex: -1, pos: "phr.", meaning: "To use up all that is available.", chinese: "用完", wordFamily: "-", matchPairs: [{ en: "run out of time", zh: "沒時間了" }, { en: "run out of patience", zh: "失去耐心" }, { en: "about to run out", zh: "快要用完" }], example: "We had to stop the road trip early because we ran out of gas in the middle of nowhere.", exampleChinese: "我們必須提早結束這趟公路旅行，因為車子在荒郊野外沒油了。", targetInExample: "ran out of" },
+      { word: "make up for", kk: "/mek ʌp fɔr/", syllables: ["make", "up", "for"], stressIndex: -1, pos: "phr.", meaning: "To give or do something to make things fair; to provide something in return for a loss or disadvantage.", chinese: "彌補", wordFamily: "-", matchPairs: [{ en: "make up for lost time", zh: "彌補失去的時間" }, { en: "make up for a mistake", zh: "彌補錯誤" }, { en: "try to make up for it", zh: "試圖彌補" }], example: "He worked extra hours over the weekend to make up for the days he missed while sick.", exampleChinese: "他週末加班，以彌補生病期間缺勤的日子。", targetInExample: "make up for" },
+      { word: "as a result", kk: "/æz ə rɪˈzʌlt/", syllables: ["as", "a", "re", "sult"], stressIndex: -1, pos: "phr.", meaning: "Therefore; thus.", chinese: "因此", wordFamily: "-", matchPairs: [{ en: "as a result of", zh: "由於...的結果" }, { en: "and, as a result", zh: "因此" }, { en: "as a direct result", zh: "作為直接結果" }], example: "The bridge was closed for repairs, and as a result, traffic in the city center became terrible.", exampleChinese: "這座橋因維修而封閉，因此市中心的交通變得非常糟糕。", targetInExample: "as a result" },
+      { word: "fall victim to", kk: "/fɔl ˈvɪktɪm tu/", syllables: ["fall", "vic", "tim", "to"], stressIndex: -1, pos: "phr.", meaning: "To suffer or become a victim as a result of something.", chinese: "成為...的受害者；受...所害", wordFamily: "-", matchPairs: [{ en: "fall victim to a scam", zh: "成為詐騙的受害者" }, { en: "easily fall victim to", zh: "很容易受害於" }, { en: "fall victim to fraud", zh: "成為詐欺的受害者" }], example: "Many elderly people fall victim to phone scams because they trust strangers too easily.", exampleChinese: "許多老年人因為太容易相信陌生人而成為電話詐騙的受害者。", targetInExample: "fall victim to" },
+      { word: "feed on", kk: "/fid ɑn/", syllables: ["feed", "on"], stressIndex: -1, pos: "phr.", meaning: "To eat something as main food.", chinese: "靠...為食", wordFamily: "-", matchPairs: [{ en: "feed on insects", zh: "以昆蟲為食" }, { en: "feed mainly on", zh: "主要以...為食" }, { en: "feed on plants", zh: "以植物為食" }], example: "Owls mostly feed on small mammals such as mice and rats.", exampleChinese: "貓頭鷹主要以老鼠等小型哺乳動物為食。", targetInExample: "feed on" },
+      { word: "set the stage for", kk: "/sɛt ðə stedʒ fɔr/", syllables: ["set", "the", "stage", "for"], stressIndex: -1, pos: "phr.", meaning: "To lead the way for; to set up the right conditions for something that is to follow.", chinese: "為...作好準備", wordFamily: "-", matchPairs: [{ en: "set the stage for success", zh: "為成功做好準備" }, { en: "set the stage for change", zh: "為改變鋪路" }, { en: "set the stage for the future", zh: "為未來奠定基礎" }], example: "The scientist's early experiments set the stage for major breakthroughs in medicine decades later.", exampleChinese: "這位科學家早期的實驗為數十年後醫學上的重大突破奠定了基礎。", targetInExample: "set the stage for" },
+    ];
+
+    // --- Web Audio API 提示音效產生器 ---
+    const playTone = (type) => {
+      try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return;
+        const ctx = new AudioContext();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        
+        if (type === 'correct') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(523.25, ctx.currentTime);
+          osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.1);
+          gain.gain.setValueAtTime(0.1, ctx.currentTime);
+          osc.start();
+          osc.stop(ctx.currentTime + 0.2);
+        } else if (type === 'wrong') {
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(300, ctx.currentTime);
+          osc.frequency.setValueAtTime(200, ctx.currentTime + 0.1);
+          gain.gain.setValueAtTime(0.1, ctx.currentTime);
+          osc.start();
+          osc.stop(ctx.currentTime + 0.2);
+        } else if (type === 'click') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(400, ctx.currentTime);
+          gain.gain.setValueAtTime(0.05, ctx.currentTime);
+          osc.start();
+          osc.stop(ctx.currentTime + 0.05);
+        }
+      } catch (e) { console.log(e); }
+    };
+
+    // --- 共用 UI 元件 ---
+    const BrutalContainer = ({ children, className = "" }) => (
+      <div className={`border-[3px] border-black shadow-[4px_4px_0_0_#000] rounded-2xl ${className}`}>
+        {children}
+      </div>
+    );
+
+    const BrutalButton = ({ onClick, children, className = "", disabled = false }) => (
+      <button
+        onClick={(e) => {
+          playTone('click');
+          if (onClick) onClick(e);
+        }}
+        disabled={disabled}
+        className={`font-bold border-[3px] border-black rounded-xl transition-all active:translate-x-[2px] active:translate-y-[2px] active:shadow-none disabled:opacity-50 disabled:active:translate-x-0 disabled:active:translate-y-0 disabled:active:shadow-[4px_4px_0_0_#000] ${className} ${disabled ? 'shadow-[4px_4px_0_0_#000]' : 'shadow-[4px_4px_0_0_#000] hover:bg-opacity-90'}`}
+      >
+        {children}
+      </button>
+    );
+
+    const Icons = {
+      Lightning: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>,
+      Volume: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>,
+      Mic: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>,
+      Keyboard: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2" ry="2"></rect><path d="M6 8h.001"></path><path d="M10 8h.001"></path><path d="M14 8h.001"></path><path d="M18 8h.001"></path><path d="M8 12h.001"></path><path d="M12 12h.001"></path><path d="M16 12h.001"></path><path d="M7 16h10"></path></svg>,
+      Pen: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"></path><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path><path d="M2 2l7.586 7.586"></path><circle cx="11" cy="11" r="2"></circle></svg>,
+      Book: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>,
+      Brain: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"></path><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"></path></svg>,
+      Exit: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+    };
+
+    // --- 主應用程式元件 ---
+    function App() {
+      const [user, setUser] = useState({ classNum: '', seatNum: '', name: '' });
+      const [isLoggedIn, setIsLoggedIn] = useState(false);
+      const [view, setView] = useState('learn'); 
+      const [xp, setXp] = useState(0);
+      const [level, setLevel] = useState(1);
+      
+      const [currentWordIndex, setCurrentWordIndex] = useState(0);
+      const [quizList, setQuizList] = useState([]);
+      const [quizIndex, setQuizIndex] = useState(0);
+
+      // --- 後台資料庫 (Google Apps Script) 追蹤狀態 ---
+      const GAS_WEB_APP_URL = '請貼上您的_Google_Apps_Script_部署網址'; // <--- ★ 部署時，請將您發布的 GAS 網址貼在這裡 ★
+      const [sessionStartTime, setSessionStartTime] = useState(Date.now());
+      const [sessionScore, setSessionScore] = useState(0);
+
+      useEffect(() => {
+        setLevel(Math.floor(xp / 50) + 1);
+      }, [xp]);
+
+      const handleLogin = (userData) => {
+        setUser(userData);
+        setCurrentWordIndex(0);
+        setSessionScore(0);
+        setSessionStartTime(Date.now());
+        setIsLoggedIn(true);
+      };
+
+      const playAudio = (text) => {
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'en-US';
+        window.speechSynthesis.speak(utterance);
+      };
+
+      const sendRecordToGAS = (targetViewToRecord, isCompleted = false) => {
+        if (!GAS_WEB_APP_URL || GAS_WEB_APP_URL.includes('請貼上')) return;
+
+        const durationSecs = Math.round((Date.now() - sessionStartTime) / 1000);
+        const mins = Math.floor(durationSecs / 60);
+        const secs = durationSecs % 60;
+        const durationStr = mins > 0 ? `${mins}分${secs}秒` : `${secs}秒`;
+
+        let displayScore = targetViewToRecord === 'learn' ? `${sessionScore}題` : `${sessionScore}/15`;
+
+        const payload = {
+          classNum: user.classNum,
+          seatNum: user.seatNum,
+          name: user.name,
+          mode: targetViewToRecord.toUpperCase(),
+          score: displayScore,
+          duration: durationStr,
+          completed: isCompleted ? "Y" : "N"
+        };
+
+        fetch(GAS_WEB_APP_URL, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(payload)
+        }).catch(err => console.error("GAS Error:", err));
+      };
+
+      const changeView = (newView) => {
+        if (['learn', 'prospeak', 'spellit', 'fillin'].includes(view) && newView !== view) {
+          const isCompleted = (view !== 'learn' && quizIndex >= 14);
+          sendRecordToGAS(view, isCompleted);
+        }
+
+        if (['learn', 'prospeak', 'spellit', 'fillin'].includes(newView) && newView !== view) {
+          setSessionScore(0);
+          setSessionStartTime(Date.now());
+        }
+
+        setView(newView);
+      };
+
+      const startQuiz = (mode) => {
+        const shuffled = [...vocabularyBank].sort(() => 0.5 - Math.random()).slice(0, 15);
+        setQuizList(shuffled);
+        setQuizIndex(0);
+        changeView(mode);
+      };
+
+      const nextLearnWord = () => {
+        setCurrentWordIndex((prev) => (prev + 1) % vocabularyBank.length);
+      };
+
+      const nextQuizQuestion = () => {
+        if (quizIndex < 14) {
+          setQuizIndex(quizIndex + 1);
+        } else {
+          showToast('測驗完成！', 'success');
+          changeView('coach'); 
+        }
+      };
+
+      const [toastMsg, setToastMsg] = useState(null);
+      const showToast = (msg, type = 'success') => {
+        setToastMsg({ text: msg, type });
+        setTimeout(() => setToastMsg(null), 2000);
+      };
+
+      if (!isLoggedIn) {
+        return <LoginScreen onLogin={handleLogin} />;
+      }
+
+      return (
+        <div className="min-h-screen bg-[#fae8eb] p-4 font-sans text-black selection:bg-indigo-300 flex justify-center pb-20">
+          <div className="w-full max-w-md flex flex-col gap-4">
+            
+            {toastMsg && (
+              <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-full font-bold border-2 border-black shadow-[4px_4px_0_0_#000] animate-bounce ${toastMsg.type === 'success' ? 'bg-green-400' : 'bg-red-400'}`}>
+                {toastMsg.text}
+              </div>
+            )}
+
+            <BrutalContainer className="bg-white flex justify-between items-center p-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-yellow-300 border-2 border-black flex items-center justify-center">
+                  <Icons.Lightning />
+                </div>
+                <div>
+                  <h1 className="font-black text-xl italic text-indigo-600 leading-none">VOCAB<span className="text-pink-500">POP</span></h1>
+                  <p className="text-xs text-gray-500 font-bold">👤 {user.classNum}班 {user.seatNum}號 {user.name}</p>
+                </div>
+              </div>
+              <div className="bg-black text-white px-3 py-1.5 rounded-full text-sm font-bold flex gap-2 items-center">
+                <span className="text-yellow-400">★ LV.{level}</span>
+                <span className="text-gray-400">|</span>
+                <span>{xp} XP</span>
+              </div>
+            </BrutalContainer>
+
+            {['learn', 'coach'].includes(view) && (
+              <div className="flex gap-4">
+                <BrutalButton onClick={() => changeView('learn')} className={`flex-1 py-3 flex items-center justify-center gap-2 text-lg ${view === 'learn' ? 'bg-[#93c5fd]' : 'bg-white'}`}>
+                  <Icons.Book /> LEARN
+                </BrutalButton>
+                <BrutalButton onClick={() => changeView('coach')} className={`flex-1 py-3 flex items-center justify-center gap-2 text-lg ${view === 'coach' ? 'bg-[#fbcfe8]' : 'bg-white'}`}>
+                  <Icons.Brain /> COACH
+                </BrutalButton>
+              </div>
+            )}
+
+            {!['learn', 'coach'].includes(view) && (
+              <div className="flex justify-between items-center">
+                <BrutalButton onClick={() => changeView('coach')} className="bg-white px-4 py-2 flex items-center gap-2 text-sm">
+                  <Icons.Exit /> EXIT
+                </BrutalButton>
+                <div className="bg-white border-2 border-black font-black px-4 py-1 rounded-full text-sm shadow-[2px_2px_0_0_#000]">
+                  {quizIndex + 1} / 15
+                </div>
+              </div>
+            )}
+
+            <div className="flex-1 mt-2 flex flex-col">
+              {view === 'learn' && <LearnMode data={vocabularyBank[currentWordIndex]} playAudio={playAudio} onNext={nextLearnWord} onScore={() => {setXp(xp + 10); setSessionScore(s => s + 1); showToast('+10 XP!');}} />}
+              {view === 'coach' && <CoachMenu startQuiz={startQuiz} />}
+              {view === 'prospeak' && <ProSpeakMode data={quizList[quizIndex]} playAudio={playAudio} onNext={nextQuizQuestion} onScore={() => {setXp(xp + 15); setSessionScore(s => s + 1); showToast('+15 XP!');}} />}
+              {view === 'spellit' && <SpellItMode data={quizList[quizIndex]} playAudio={playAudio} onNext={nextQuizQuestion} onScore={() => {setXp(xp + 20); setSessionScore(s => s + 1); showToast('+20 XP!');}} />}
+              {view === 'fillin' && <FillInMode data={quizList[quizIndex]} onNext={nextQuizQuestion} onScore={() => {setXp(xp + 20); setSessionScore(s => s + 1); showToast('+20 XP!');}} />}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // --- 登入畫面元件 ---
+    function LoginScreen({ onLogin }) {
+      const [classNum, setClassNum] = useState('208');
+      const [seatNum, setSeatNum] = useState('');
+      const [name, setName] = useState('');
+
+      const handleSubmit = (e) => {
+        e.preventDefault();
+        if (classNum && seatNum && name) {
+          onLogin({ classNum, seatNum, name });
+        }
+      };
+
+      return (
+        <div className="min-h-screen bg-[#fae8eb] flex items-center justify-center p-4">
+          <BrutalContainer className="bg-white w-full max-w-sm p-8 flex flex-col items-center gap-6">
+            <div className="w-20 h-20 bg-[#fde047] rounded-full border-4 border-black flex items-center justify-center shadow-[4px_4px_0_0_#000]">
+              <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+            </div>
+            <div className="text-center">
+              <h1 className="text-4xl font-black italic text-indigo-600 mb-1">VOCAB<span className="text-pink-500">POP</span></h1>
+              <h2 className="font-bold text-gray-500 tracking-wider">STUDENT LOGIN</h2>
+            </div>
+
+            <form onSubmit={handleSubmit} className="w-full flex flex-col gap-4 mt-2">
+              <div className="flex gap-4">
+                <div className="flex-1">
+                  <label className="block font-bold text-sm mb-1 text-gray-700">CLASS (班級) *</label>
+                  <select 
+                    value={classNum} 
+                    onChange={e => setClassNum(e.target.value)}
+                    className="w-full border-2 border-black rounded-lg p-3 font-bold bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                  >
+                    <option value="208">208</option>
+                    <option value="211">211</option>
+                    <option value="216">216</option>
+                  </select>
+                </div>
+                <div className="flex-1">
+                  <label className="block font-bold text-sm mb-1 text-gray-700">NO. (座號) *</label>
+                  <input 
+                    type="number" 
+                    placeholder="e.g. 15" 
+                    required
+                    value={seatNum}
+                    onChange={e => setSeatNum(e.target.value)}
+                    className="w-full border-2 border-black rounded-lg p-3 font-bold outline-none focus:ring-2 focus:ring-indigo-400"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block font-bold text-sm mb-1 text-gray-700">NAME (姓名) *</label>
+                <input 
+                  type="text" 
+                  placeholder="e.g. 王小明" 
+                  required
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                  className="w-full border-2 border-black rounded-lg p-3 font-bold outline-none focus:ring-2 focus:ring-indigo-400"
+                />
+              </div>
+              <BrutalButton type="submit" className="bg-[#6366f1] text-white py-4 mt-4 text-xl tracking-wide flex justify-center items-center gap-2">
+                START JOURNEY <span className="text-2xl leading-none">→</span>
+              </BrutalButton>
+            </form>
+          </BrutalContainer>
+        </div>
+      );
+    }
+
+    // --- 學習模式 (Learn Mode) ---
+    function LearnMode({ data, playAudio, onNext, onScore }) {
+      const [cards, setCards] = useState([]);
+      const [selectedCards, setSelectedCards] = useState([]);
+      const [matchedIds, setMatchedIds] = useState([]);
+      const topRef = useRef(null);
+      
+      useEffect(() => {
+        // 每次切換到新單字時，捲動回頁面最上方（顯示單字本身，而非搭配詞區塊）
+        // 用 requestAnimationFrame 確保在畫面完成重新渲染、版面高度更新後才捲動，避免捲動失效
+        requestAnimationFrame(() => {
+          if (topRef.current) {
+            topRef.current.scrollIntoView({ behavior: 'auto', block: 'start' });
+          }
+          window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+        });
+
+        playAudio(data.word);
+        
+        const initialCards = [];
+        data.matchPairs.forEach((pair, idx) => {
+          initialCards.push({ text: pair.en, type: 'en', id: idx });
+          initialCards.push({ text: pair.zh, type: 'zh', id: idx });
+        });
+        
+        setCards(initialCards.sort(() => 0.5 - Math.random()));
+        setSelectedCards([]);
+        setMatchedIds([]);
+      }, [data]);
+
+      const handleCardClick = (card) => {
+        if (matchedIds.includes(card.id)) return; 
+        if (selectedCards.some(c => c.text === card.text)) return; 
+        if (selectedCards.length === 2) return; 
+
+        const newSelected = [...selectedCards, card];
+        setSelectedCards(newSelected);
+
+        if (newSelected.length === 1) {
+          playTone('click');
+          if (card.type === 'en') playAudio(card.text);
+        } else if (newSelected.length === 2) {
+          if (newSelected[0].id === newSelected[1].id && newSelected[0].type !== newSelected[1].type) {
+            playTone('correct');
+            const newMatchedCount = matchedIds.length + 1;
+            setMatchedIds(prev => [...prev, newSelected[0].id]);
+            setSelectedCards([]);
+            
+            if (newMatchedCount === data.matchPairs.length) {
+               onScore(); 
+            }
+          } else {
+            playTone('wrong');
+            setTimeout(() => setSelectedCards([]), 800);
+          }
+        }
+      };
+
+      return (
+        <BrutalContainer className="bg-white overflow-hidden flex flex-col mb-4 h-full">
+          <div ref={topRef}></div>
+          <div className="bg-[#4f46e5] text-white p-6 pb-8 relative flex flex-col items-center text-center">
+            <div className="absolute inset-0 opacity-20 pointer-events-none" style={{ backgroundImage: 'radial-gradient(#ffffff 2px, transparent 2px)', backgroundSize: '16px 16px' }}></div>
+            
+            <div className="bg-black text-white text-xs font-bold px-3 py-1 rounded-full self-start mb-4 relative z-10 border-2 border-white">
+              {data.pos}
+            </div>
+            
+            <div className="bg-white/20 px-3 py-1 rounded-md text-sm font-mono tracking-widest mb-2 relative z-10">
+              {data.kk}
+            </div>
+            
+            <h2 className="text-5xl font-black mb-4 relative z-10 tracking-tight">{data.word}</h2>
+            
+            <div className="flex gap-2 mb-6 relative z-10 flex-wrap justify-center">
+              {data.syllables.map((syl, i) => (
+                <span 
+                  key={i} 
+                  className={`px-3 py-1 rounded text-sm font-bold shadow-sm transition-all ${
+                    data.stressIndex === i 
+                      ? 'bg-yellow-400 text-black border-[2px] border-black shadow-[2px_2px_0_0_#000] scale-110 z-10' 
+                      : 'bg-white/30 text-white border-[2px] border-transparent'
+                  }`}
+                >
+                  {syl}
+                </span>
+              ))}
+            </div>
+
+            <button 
+              onClick={() => { playTone('click'); playAudio(data.word); }}
+              className="bg-white text-black w-16 h-16 rounded-full flex items-center justify-center border-[3px] border-black shadow-[4px_4px_0_0_#000] hover:translate-y-[2px] hover:shadow-[2px_2px_0_0_#000] active:translate-y-[4px] active:shadow-none transition-all relative z-10"
+            >
+              <Icons.Volume />
+            </button>
+          </div>
+
+          <div className="p-6 flex flex-col gap-6 flex-1">
+            <div>
+              <h3 className="font-black text-xl flex items-center gap-2 mb-2">
+                <span className="w-3 h-3 bg-yellow-400 rounded-full border-2 border-black inline-block"></span> 
+                Meaning
+              </h3>
+              <p className="text-gray-700 font-medium pl-4 border-l-[3px] border-gray-200 text-lg">
+                {data.meaning} <span className="text-indigo-600 font-bold ml-1">({data.chinese})</span>
+              </p>
+            </div>
+
+            {data.wordFamily !== "-" && (
+              <div className="bg-indigo-50 border-2 border-indigo-200 rounded-xl p-4">
+                <p className="text-indigo-600 font-bold text-sm mb-2 uppercase tracking-wide">🔗 Word Family & Collocations:</p>
+                <div className="flex flex-col gap-2">
+                   <div className="bg-white border border-indigo-200 rounded-lg px-3 py-2 text-sm font-medium text-gray-800">
+                     {data.wordFamily}
+                   </div>
+                   <div className="bg-white border border-indigo-200 rounded-lg px-3 py-2 text-sm font-bold text-indigo-700 italic flex justify-between">
+                     " {data.matchPairs[0].en} "
+                   </div>
+                </div>
+              </div>
+            )}
+
+            <div>
+              <h3 className="font-black text-xl flex items-center gap-2 mb-2">
+                <span className="w-3 h-3 bg-green-400 rounded-full border-2 border-black inline-block"></span> 
+                Example
+              </h3>
+              <div className="bg-gray-50 border-2 border-gray-200 rounded-xl p-4 flex flex-col gap-2">
+                <span className="text-gray-700 italic text-base leading-relaxed">"{data.example}"</span>
+                <span className="text-indigo-700 font-bold text-sm border-t-2 border-gray-200 pt-2">{data.exampleChinese}</span>
+              </div>
+            </div>
+
+            {/* 6 格中英搭配詞配對 Mini Match（3 組 Oxford Collocation Dictionary 常見搭配詞） */}
+            <div className="bg-pink-50 border-2 border-pink-200 rounded-xl p-4 mt-2 mb-4">
+              <h4 className="font-bold text-pink-600 mb-1 flex items-center gap-2">✨ Mini Match (中英搭配詞)</h4>
+              <p className="text-sm font-bold text-gray-700 mb-3">請將下方的英文與對應的中文配對：</p>
+              
+              <div className="grid grid-cols-2 gap-3">
+                {cards.map((card, i) => {
+                  const isSelected = selectedCards.some(c => c.text === card.text);
+                  const isMatched = matchedIds.includes(card.id);
+                  
+                  let btnClass = "bg-white text-gray-800 border-pink-200 hover:bg-pink-100";
+                  if (isMatched) {
+                    btnClass = "bg-green-400 text-black border-black border-2 shadow-[2px_2px_0_0_#000] opacity-60 cursor-not-allowed";
+                  } else if (isSelected) {
+                    btnClass = "bg-yellow-300 text-black border-black border-2 shadow-[2px_2px_0_0_#000]";
+                  }
+
+                  return (
+                    <button 
+                      key={i}
+                      onClick={() => handleCardClick(card)}
+                      className={`p-4 rounded-lg font-bold text-[13px] transition-all border-2 ${btnClass}`}
+                    >
+                      {card.text}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          <div className="p-4 pt-0 w-full mt-auto">
+            <BrutalButton onClick={(e) => { if (e && e.currentTarget) e.currentTarget.blur(); onNext(); }} className="w-full bg-black text-white py-4 text-lg shadow-[4px_4px_0_0_#cbd5e1] hover:bg-gray-800">
+              NEXT WORD →
+            </BrutalButton>
+          </div>
+        </BrutalContainer>
+      );
+    }
+
+    // --- 教練模式選單 (Coach Menu) ---
+    function CoachMenu({ startQuiz }) {
+      return (
+        <div className="flex flex-col gap-4">
+          <BrutalButton onClick={() => startQuiz('prospeak')} className="bg-[#86efac] p-6 flex flex-col items-center justify-center gap-2">
+            <Icons.Mic />
+            <span className="font-black text-2xl">PRO SPEAK</span>
+            <span className="text-sm font-bold text-gray-800">發音挑戰 (隨機 15 題)</span>
+          </BrutalButton>
+          
+          <BrutalButton onClick={() => startQuiz('spellit')} className="bg-[#a5b4fc] p-6 flex flex-col items-center justify-center gap-2">
+            <Icons.Keyboard />
+            <span className="font-black text-2xl">SPELL IT</span>
+            <span className="text-sm font-bold text-gray-800">課本單字聽寫 (隨機 15 題)</span>
+          </BrutalButton>
+          
+          <BrutalButton onClick={() => startQuiz('fillin')} className="bg-[#fdba74] p-6 flex flex-col items-center justify-center gap-2 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-16 h-16 bg-orange-400 rounded-bl-full opacity-50"></div>
+            <Icons.Pen />
+            <span className="font-black text-2xl relative z-10">FILL IN</span>
+            <span className="text-sm font-bold text-gray-800 relative z-10">單字克漏字 (隨機 15 題)</span>
+          </BrutalButton>
+        </div>
+      );
+    }
+
+    // --- 發音挑戰 (Pro Speak) ---
+    function ProSpeakMode({ data, playAudio, onNext, onScore }) {
+      const [status, setStatus] = useState('idle');
+      const [transcript, setTranscript] = useState('');
+
+      const handleListen = () => {
+        playTone('click');
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+          setStatus('error');
+          setTranscript('瀏覽器不支援，請使用 Chrome 或允許麥克風權限。');
+          return;
+        }
+
+        const recognition = new SpeechRecognition();
+        recognition.lang = 'en-US';
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+
+        recognition.onstart = () => {
+          setStatus('listening');
+          setTranscript('');
+        };
+
+        recognition.onresult = (event) => {
+          const speechResult = event.results[0][0].transcript.toLowerCase().trim();
+          setTranscript(speechResult);
+          const cleanResult = speechResult.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"");
+          const cleanTarget = data.word.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"");
+          
+          if (cleanResult.includes(cleanTarget) || cleanTarget.includes(cleanResult)) {
+            playTone('correct');
+            setStatus('success');
+            onScore();
+          } else {
+            playTone('wrong');
+            setStatus('error');
+          }
+        };
+
+        recognition.onerror = (event) => {
+          setStatus('error');
+          if (event.error === 'not-allowed') {
+            setTranscript('麥克風權限被拒絕，請允許權限或點擊跳過。');
+          } else {
+            setTranscript('發生錯誤: ' + event.error);
+          }
+        };
+
+        recognition.onend = () => {
+          if(status === 'listening') setStatus('idle');
+        };
+
+        recognition.start();
+      };
+
+      return (
+        <BrutalContainer className="bg-white p-6 flex flex-col items-center text-center min-h-[400px]">
+          <div className="self-end bg-gray-200 px-3 py-1 rounded-full text-sm font-bold mb-4">
+            VOCAB <span className="text-indigo-600">PRO</span>
+          </div>
+          
+          <h2 className="text-5xl font-black mt-8 mb-4">{data.word}</h2>
+          <div className="bg-gray-100 px-4 py-2 rounded-lg font-mono text-lg tracking-widest mb-12 border-2 border-gray-300">
+            {data.kk}
+          </div>
+
+          <button 
+            onClick={handleListen}
+            className={`w-32 h-32 rounded-full border-[4px] border-black shadow-[6px_6px_0_0_#000] flex items-center justify-center transition-all 
+              ${status === 'listening' ? 'bg-red-400 animate-pulse translate-y-[2px] shadow-[4px_4px_0_0_#000]' : 'bg-[#fde047] hover:bg-yellow-300'}
+            `}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
+          </button>
+
+          <div className="mt-8 font-bold text-lg min-h-[2rem]">
+            {status === 'listening' && <span className="text-red-500">Listening...</span>}
+            {status === 'success' && <span className="text-green-500">Excellent! ({transcript})</span>}
+            {status === 'error' && <span className="text-red-500">{transcript.includes('瀏覽器') || transcript.includes('權限') || transcript.includes('錯誤') ? transcript : `Heard: "${transcript}". Try again!`}</span>}
+            {status === 'idle' && <span>TAP TO RECORD</span>}
+          </div>
+
+          <div className="mt-auto w-full pt-6 flex flex-col gap-3">
+            {status === 'success' ? (
+              <BrutalButton onClick={() => {setStatus('idle'); onNext();}} className="w-full bg-black text-white py-4 text-lg">
+                NEXT QUESTION →
+              </BrutalButton>
+            ) : (
+              <button onClick={() => {setStatus('idle'); onNext();}} className="text-gray-400 text-sm font-bold hover:text-gray-600 underline py-2">
+                無法使用麥克風？點此跳過此題
+              </button>
+            )}
+          </div>
+        </BrutalContainer>
+      );
+    }
+
+    // --- 聽寫測驗 (Spell It) ---
+    function SpellItMode({ data, playAudio, onNext, onScore }) {
+      const [input, setInput] = useState('');
+      const [status, setStatus] = useState('idle');
+
+      useEffect(() => {
+        playAudio(data.word);
+        setInput('');
+        setStatus('idle');
+      }, [data]);
+
+      const handleCheck = () => {
+        if (input.toLowerCase().trim() === data.word.toLowerCase()) {
+          playTone('correct');
+          setStatus('success');
+          onScore();
+        } else {
+          playTone('wrong');
+          setStatus('error');
+        }
+      };
+
+      return (
+        <BrutalContainer className="bg-[#fff7ed] p-6 flex flex-col items-center text-center">
+          <div className="w-full flex justify-end mb-4">
+            <span className="bg-gray-200 px-3 py-1 rounded-full text-sm font-bold text-gray-600">DICTATION</span>
+          </div>
+
+          <button 
+            onClick={() => { playTone('click'); playAudio(data.word); }}
+            className="w-24 h-24 bg-[#a5b4fc] rounded-full border-[3px] border-black shadow-[4px_4px_0_0_#000] flex items-center justify-center mb-8 hover:bg-indigo-300 transition-colors hover:translate-y-[2px] active:translate-y-[4px] active:shadow-none"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>
+          </button>
+
+          <p className="text-lg font-bold text-gray-800 mb-4 px-4 border-l-4 border-indigo-400 text-left w-full">
+            "{data.meaning}" <br/>
+            <span className="text-indigo-600 text-sm mt-1 block">({data.chinese})</span>
+          </p>
+
+          <div className="bg-black text-white px-4 py-1 rounded-full text-sm font-bold mb-8">
+            {data.pos} • {data.word.length} letters/chars
+          </div>
+
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => {setInput(e.target.value); setStatus('idle');}}
+            placeholder="Type here..."
+            className={`w-full text-center text-3xl font-black p-4 bg-transparent border-b-4 outline-none transition-colors 
+              ${status === 'error' ? 'border-red-500 text-red-600' : 'border-indigo-500 text-indigo-900'}
+            `}
+          />
+          {status === 'error' && <p className="text-red-500 font-bold mt-2">Try again!</p>}
+
+          <div className="mt-12 w-full">
+            {status === 'success' ? (
+              <BrutalButton onClick={onNext} className="w-full bg-green-400 py-4 text-xl">
+                CORRECT! NEXT →
+              </BrutalButton>
+            ) : (
+              <BrutalButton onClick={handleCheck} className="w-full bg-black text-white py-4 text-xl">
+                CHECK ANSWER
+              </BrutalButton>
+            )}
+          </div>
+        </BrutalContainer>
+      );
+    }
+
+    // 從字典字根 (data.word，可能包含 "..." 表示片語省略部分) 取出可比對的基礎詞形
+    function getBaseTokens(baseWordField) {
+      return baseWordField
+        .replace(/\.\.\./g, ' ')
+        .split(/\s+/)
+        .filter(Boolean);
+    }
+
+    // 比對此字與所有基礎詞形，找出最長共同字首，藉此推算出「時態/型態變化」的字尾，
+    // 並完整顯示該字尾（字母數不限），讓學生能清楚看出變化規則（如 -ed、-s、-es、-ing 等）
+    function buildBlank(word, baseTokens) {
+      const lw = word.toLowerCase();
+
+      if (word.length <= 2) {
+        // 太短的字直接全部挖空
+        return "_ ".repeat(word.length).trim();
+      }
+
+      let bestPrefixLen = 0;
+      baseTokens.forEach(bt => {
+        const lbt = bt.toLowerCase();
+        let len = 0;
+        const maxLen = Math.min(lw.length, lbt.length);
+        while (len < maxLen && lw[len] === lbt[len]) len++;
+        if (len > bestPrefixLen) bestPrefixLen = len;
+      });
+
+      const suffixLen = word.length - bestPrefixLen;
+
+      if (bestPrefixLen >= 1 && suffixLen >= 1) {
+        // 找到與字典原形不同的字尾變化，完整顯示該字尾
+        const middleLen = word.length - 1 - suffixLen;
+        const suffix = word.slice(word.length - suffixLen).split('').join(' ');
+        return word[0] + (middleLen > 0 ? ' ' + "_ ".repeat(middleLen).trim() : '') + ' ' + suffix;
+      }
+
+      // 沒有偵測到字尾變化（與字典原形相同），僅保留字首與字尾各一個字母
+      return word[0] + ' ' + "_ ".repeat(Math.max(word.length - 2, 0)).trim() + ' ' + word[word.length - 1];
+    }
+
+    // --- 填充測驗 (Fill In) 支援片語拆解 ---
+    function FillInMode({ data, onNext, onScore }) {
+      const [input, setInput] = useState('');
+      const [status, setStatus] = useState('idle');
+      const [showHint, setShowHint] = useState(false);
+
+      useEffect(() => {
+        setInput('');
+        setStatus('idle');
+        setShowHint(false);
+      }, [data]);
+
+      const targetWord = data.targetInExample;
+      const baseTokens = getBaseTokens(data.word);
+      const blankStr = targetWord.split(' ').map(w => buildBlank(w, baseTokens)).join('   ');
+
+      const parts = data.example.split(new RegExp(`\\b${targetWord}\\b`, 'i'));
+      const renderPrefix = parts[0] !== undefined ? parts[0] : "";
+      const renderSuffix = parts[1] !== undefined ? parts[1] : "";
+
+      const handleCheck = () => {
+        if (input.toLowerCase().trim() === targetWord.toLowerCase()) {
+          playTone('correct');
+          setStatus('success');
+          onScore();
+        } else {
+          playTone('wrong');
+          setStatus('error');
+        }
+      };
+
+      return (
+        <BrutalContainer className="bg-white p-6">
+          <div className="flex justify-between items-center mb-6">
+            <span className="bg-pink-100 text-pink-700 border-2 border-pink-300 px-3 py-1 rounded-md text-sm font-bold shadow-sm">
+              Grammar & Collocation
+            </span>
+            <span className="text-gray-400 font-bold text-sm">FILL IN</span>
+          </div>
+
+          <div className="text-2xl font-medium leading-relaxed mb-8 text-gray-800">
+            {renderPrefix}
+            <span className="inline-block mx-2 border-b-4 border-black px-2 pb-1 font-mono font-bold text-orange-500 bg-orange-50 relative top-1">
+              {blankStr}
+            </span>
+            {renderSuffix}
+          </div>
+
+          <button 
+            onClick={() => { playTone('click'); setShowHint(!showHint); }}
+            className="text-blue-600 font-bold text-sm hover:underline mb-4"
+          >
+            {showHint ? "Hide Translation (Hint)" : "Show Translation (Hint)"}
+          </button>
+
+          {showHint && (
+            <div className="bg-blue-50 border-l-4 border-blue-400 p-3 mb-6 text-gray-700 font-medium rounded-r-lg text-sm">
+               中譯提示：{data.exampleChinese}
+            </div>
+          )}
+
+          <div className="mt-4">
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => {setInput(e.target.value); setStatus('idle');}}
+              placeholder="Type the missing part..."
+              className={`w-full border-2 border-black rounded-xl p-4 text-xl font-bold outline-none focus:ring-4 focus:ring-orange-200 transition-all shadow-[4px_4px_0_0_#000]
+                ${status === 'error' ? 'bg-red-50 text-red-600 border-red-500' : 'bg-white text-black'}
+              `}
+            />
+          </div>
+          
+          {status === 'error' && <p className="text-red-500 font-bold mt-3 text-center">Incorrect, check your spelling!</p>}
+
+          <div className="mt-8">
+            {status === 'success' ? (
+              <BrutalButton onClick={onNext} className="w-full bg-green-400 py-4 text-xl">
+                AWESOME! NEXT →
+              </BrutalButton>
+            ) : (
+              <BrutalButton onClick={handleCheck} className="w-full bg-black text-white py-4 text-xl">
+                CHECK ANSWER
+              </BrutalButton>
+            )}
+          </div>
+        </BrutalContainer>
+      );
+    }
+
+    // 將 App 渲染到 DOM 中
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
